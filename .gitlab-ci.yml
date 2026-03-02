@@ -48,14 +48,23 @@ build:
     - docker push $CI_REGISTRY_IMAGE:$CI_COMMIT_SHORT_SHA
     - docker push $CI_REGISTRY_IMAGE:latest
 
+  after_script:
+    - echo "IMAGE_URI=${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_DEFAULT_REGION}.amazonaws.com/${ECR_REPO}:$CI_COMMIT_SHORT_SHA" > build.env
+  artifacts:
+    reports:
+      dotenv: build.env
+
+
 # ========== Deploy staging (AWS) : automatique sur branche develop ==========
 deploy_staging:
   stage: deploy_staging
   image: hashicorp/terraform:latest
+  dependencies:
+    - build
   script:
     - cd terraform/aws-staging
     - terraform init
-    - terraform apply -auto-approve -var "docker_image=$CI_REGISTRY_IMAGE" -var "docker_tag=$CI_COMMIT_SHORT_SHA" -var "registry_url=$CI_REGISTRY" -var "registry_user=$CI_REGISTRY_USER" -var "registry_password=$CI_REGISTRY_PASSWORD"
+    - terraform apply -auto-approve -var="image=$IMAGE_URI"
   rules:
     - if: $CI_COMMIT_BRANCH == "develop"
 
@@ -64,9 +73,25 @@ deploy_production:
   stage: deploy_production
   image: hashicorp/terraform:latest
   when: manual
+  variables:
+    TF_IN_AUTOMATION: "true"
+  before_script:
+    # Optional: show terraform version
+    - terraform -version
+
+    # Ensure AzureRM provider auth via Service Principal (set in CI/CD variables)
+    - test -n "$ARM_CLIENT_ID"
+    - test -n "$ARM_CLIENT_SECRET"
+    - test -n "$ARM_SUBSCRIPTION_ID"
+    - test -n "$ARM_TENANT_ID"
+
+    # Ensure long-lived registry pull creds (Deploy Token)
+    - test -n "$GL_REGISTRY_USER"
+    - test -n "$GL_REGISTRY_TOKEN"
+
   script:
     - cd terraform/azure-production
     - terraform init
-    - terraform apply -auto-approve -var "docker_image=$CI_REGISTRY_IMAGE" -var "docker_image_tag=latest" -var "registry_url=https://$CI_REGISTRY" -var "registry_user=$CI_REGISTRY_USER" -var "registry_password=$CI_REGISTRY_PASSWORD"
+    - terraform apply -auto-approve -var="docker_image=$CI_REGISTRY_IMAGE" -var="docker_image_tag=latest" -var="registry_url=https://$CI_REGISTRY" -var="registry_user=$GL_REGISTRY_USER" -var="registry_password=$GL_REGISTRY_TOKEN"
   rules:
     - if: $CI_COMMIT_BRANCH == "main"
