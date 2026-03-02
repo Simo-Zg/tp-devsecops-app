@@ -16,4 +16,3 @@ app.get('/health', (req, res) => {
 });
 
 module.exports = app;
-API_KEY=sk-demo-123456789
