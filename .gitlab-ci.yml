@@ -58,7 +58,9 @@ build:
 # ========== Deploy staging (AWS) : automatique sur branche develop ==========
 deploy_staging:
   stage: deploy_staging
-  image: hashicorp/terraform:latest
+  image:
+    name: hashicorp/terraform:latest
+    entrypoint: [""]
   dependencies:
     - build
   script:
@@ -71,27 +73,28 @@ deploy_staging:
 # ========== Deploy production (Azure) : manuel (gate) sur branche main ==========
 deploy_production:
   stage: deploy_production
-  image: hashicorp/terraform:latest
+  image:
+    name: hashicorp/terraform:latest
+    entrypoint: [""]
   when: manual
   variables:
     TF_IN_AUTOMATION: "true"
   before_script:
-    # Optional: show terraform version
     - terraform -version
-
-    # Ensure AzureRM provider auth via Service Principal (set in CI/CD variables)
     - test -n "$ARM_CLIENT_ID"
     - test -n "$ARM_CLIENT_SECRET"
     - test -n "$ARM_SUBSCRIPTION_ID"
     - test -n "$ARM_TENANT_ID"
-
-    # Ensure long-lived registry pull creds (Deploy Token)
     - test -n "$GL_REGISTRY_USER"
     - test -n "$GL_REGISTRY_TOKEN"
-
   script:
     - cd terraform/azure-production
     - terraform init
-    - terraform apply -auto-approve -var="docker_image=$CI_REGISTRY_IMAGE" -var="docker_image_tag=latest" -var="registry_url=https://$CI_REGISTRY" -var="registry_user=$GL_REGISTRY_USER" -var="registry_password=$GL_REGISTRY_TOKEN"
+    - terraform apply -auto-approve \
+        -var="docker_image=$CI_REGISTRY_IMAGE" \
+        -var="docker_image_tag=latest" \
+        -var="registry_url=https://$CI_REGISTRY" \
+        -var="registry_user=$GL_REGISTRY_USER" \
+        -var="registry_password=$GL_REGISTRY_TOKEN"
   rules:
     - if: $CI_COMMIT_BRANCH == "main"
