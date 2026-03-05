@@ -25,8 +25,10 @@ security:
   image: alpine:latest
   script:
     - |
-      if grep -rE 'API_KEY\s*=\s*["\x27]?sk-[a-zA-Z0-9-]+' --include="*.js" --include="*.json" . 2>/dev/null; then
-        echo "ERREUR : secret ou faux secret détecté (API_KEY=sk-...). Ne pas exposer de clés dans le code."
+      set -eu
+      if grep -RInE '(^|[^A-Z0-9_])API_KEY\s*=\s*["'\''"][^"'\''\r\n]{8,}["'\'']' \
+        --include="*.js" --include="*.json" --include="*.env*" . 2>/dev/null; then
+        echo "ERREUR : possible secret détecté (API_KEY=...)."
         exit 1
       fi
       echo "Aucun secret suspect détecté."
