@@ -28,11 +28,11 @@ security:
       echo "Running secret pattern scan..."
       FOUND=0
 
-      # Match: API= or API_KEY= (with or without quotes, 6+ char value), case-insensitive
       if grep -RInE \
-        "(?i)(^|[^A-Z0-9_])(API|API_KEY)[[:space:]]*=[[:space:]]*['\"]?[^'\" [:space:]]{6,}['\"]?" \
-        --include="*.js" --include="*.json" --include="*.env" --include="*.env.*" \
-        --include="*.ts" --include="*.yml" --include="*.yaml" . 2>/dev/null; then
+        "(^|[^a-zA-Z0-9_])[aA][pP][iI](_[kK][eE][yY])?[[:space:]]*=[[:space:]]*['\"]?[^'\" [:space:]]{6,}['\"]?" \
+        --include="*.js" --include="*.ts" --include="*.json" \
+        --include="*.env" --include="*.env.*" \
+        --include="*.yml" --include="*.yaml" . 2>/dev/null; then
         FOUND=1
       fi
 
