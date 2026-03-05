@@ -19,22 +19,23 @@ test:
     - npm test
 
 # ========== Stage security : détection de secret exposé ==========
-# Si le code contient un motif type API_KEY=sk-demo-..., le job échoue
 security:
   stage: security
   image: alpine:latest
   script:
     - |
       set -eu
-      if grep -RInE '(^|[^A-Z0-9_])API_KEY\s*=\s*["'\''"][^"'\''\r\n]{8,}["'\'']' \
+
+      echo "Running secret pattern scan..."
+      if grep -RInE "(^|[^A-Z0-9_])API_KEY[[:space:]]*=[[:space:]]*['\"][^'\"]{6,}['\"]" \
         --include="*.js" --include="*.json" --include="*.env*" . 2>/dev/null; then
         echo "ERREUR : possible secret détecté (API_KEY=...)."
         exit 1
       fi
+
       echo "Aucun secret suspect détecté."
 
 # ========== Stage build : construction de l'image Docker ==========
-# Le login et le push vers le registry sont détaillés en section 8
 build:
   stage: build
   image: docker:24
