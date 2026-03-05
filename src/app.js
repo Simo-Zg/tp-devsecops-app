@@ -14,5 +14,5 @@ app.get('/health', (req, res) => {
     timestamp: new Date().toISOString()
   });
 });
-
+API_KEY="sk-demo-123456789"
 module.exports = app;
