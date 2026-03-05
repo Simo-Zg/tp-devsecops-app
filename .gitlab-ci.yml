@@ -25,11 +25,19 @@ security:
   script:
     - |
       set -eu
-
       echo "Running secret pattern scan..."
-      if grep -RInE "(^|[^A-Z0-9_])API_KEY[[:space:]]*=[[:space:]]*['\"][^'\"]{6,}['\"]" \
-        --include="*.js" --include="*.json" --include="*.env*" . 2>/dev/null; then
-        echo "ERREUR : possible secret détecté (API_KEY=...)."
+      FOUND=0
+
+      # Match: API= or API_KEY= (with or without quotes, 6+ char value), case-insensitive
+      if grep -RInE \
+        "(?i)(^|[^A-Z0-9_])(API|API_KEY)[[:space:]]*=[[:space:]]*['\"]?[^'\" [:space:]]{6,}['\"]?" \
+        --include="*.js" --include="*.json" --include="*.env" --include="*.env.*" \
+        --include="*.ts" --include="*.yml" --include="*.yaml" . 2>/dev/null; then
+        FOUND=1
+      fi
+
+      if [ "$FOUND" -eq 1 ]; then
+        echo "ERREUR : possible secret détecté (API= ou API_KEY=...)."
         exit 1
       fi
 
